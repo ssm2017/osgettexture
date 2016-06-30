@@ -1,0 +1,54 @@
+<?php
+/* =================================
+ * Asset server type
+ * =================================
+ * if you are using a classic asset server,
+ * select 'assets' and comment or remove the line with 'fsassets'
+ * and vice versa.
+ * --------------------------------- */
+//define('ASSET_FORMAT', 'assets');
+define('ASSET_FORMAT', 'fsassets');
+
+/* =================================
+ * Fsassets files folder
+ * =================================
+ * If you are using fsassets,
+ * tell the script where the files are stored.
+ * This path is absolute.
+ * --------------------------------- */
+define('CFG_FSASSETS_DIR', '/srv/fsassets/data');
+
+/* =================================
+ * Image converter
+ * =================================
+ * Select the image converter you have installed on your machine.
+ * --------------------------------- */
+//define('CFG_IMG_CONVERTER', 'imagick');
+define('CFG_IMG_CONVERTER', 'gmagick');
+//define('CFG_IMG_CONVERTER', 'j2k_to_image');
+
+/* =================================
+ * Temp folder
+ * =================================
+ * If you are using j2k_to_image, the script needs to have a temp folder.
+ * This path is absolute.
+ * --------------------------------- */
+define('CFG_IMG_TMP_FOLDER', '/tmp');
+
+/* =================================
+ * Cache folder
+ * =================================
+ * The files are cached. You need to tell the script where to put cached files.
+ * The folder should be inside the web documents root to be accessible.
+ * This path is relative.
+ * --------------------------------- */
+define('CFG_IMG_CACHE_FOLDER_NAME', 'cache');
+
+/* =================================
+ * Cache max age
+ * =================================
+ * Tell the script how long the files are cached before beeing deleted.
+ * The value is in seconds.
+ * --------------------------------- */
+define('CFG_IMG_CACHE_MAX_AGE', 3600);
+?>
