@@ -23,6 +23,7 @@ if (!defined('UUID_ZERO')) {
 include("../etc/databaseinfo.php");
 include('../etc/config.php');
 include('Asset.Class.php');
+include('Cache.Class.php');
 
 /**
  * Check
@@ -67,11 +68,13 @@ function check() {
 }
 
 /**
- * Return 404
+ * Validate uuid
  */
-function show404() {
-  header('HTTP/1.1 404 Not Found');
-  exit();
+function checkUUID($uuid) {
+  if (preg_match("/^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$/", $uuid)) {
+    return TRUE;
+  }
+  return FALSE;
 }
 
 /**
@@ -83,13 +86,11 @@ function show400() {
 }
 
 /**
- * Validate uuid
+ * Return 404
  */
-function checkUUID($uuid) {
-  if (preg_match("/^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$/", $uuid)) {
-    return TRUE;
-  }
-  return FALSE;
+function show404() {
+  header('HTTP/1.1 404 Not Found');
+  exit();
 }
 
 /**
@@ -110,6 +111,92 @@ function closeDB($link) {
 }
 
 /**
+ * Shows the image
+ */
+function showImage() {
+  // create the asset object
+  $asset = new Asset();
+  $asset->id = $_GET['texture_id'];
+
+  // get the format
+  if (isset($_SERVER['HTTP_ACCEPT']) && in_array($_SERVER['HTTP_ACCEPT'], array('image/jpg', 'image/jpeg', 'image/gif', 'image/png'))) {
+    $asset->format = explode('/', $_SERVER['HTTP_ACCEPT'])[1];
+  } else if (isset($_GET['format']) && in_array($_GET['format'], array('jpg', 'jpeg', 'gif', 'png'))) {
+    $asset->format = $_GET['format'];
+  }
+  // get the width
+  if (isset($_GET['width']) && is_numeric($_GET['width'])) {
+    $asset->width = ($_GET['width'] > 1024) ? 1024 : $_GET['width'];
+  }
+
+  // get values in database
+  if ($asset->id != UUID_ZERO) {
+    (ASSET_FORMAT == 'fsassets') ? $asset->getFSAssetValues() : $asset->getAssetValues();
+  }
+  else {
+    $asset->data = $asset->getAssetZero();
+    $asset->hash = hash('sha256', $asset->data);
+  }
+
+  $image = '';
+
+  // build common headers
+  Header("Content-type: image/". $asset->format);
+
+  // manage the cache
+  Header("Cache-Control: public");
+  $cache = new Cache();
+
+  // build the cache path
+  $cache->cache_folder_path = $_SERVER['DOCUMENT_ROOT']. '/'. CFG_IMG_CACHE_FOLDER_NAME. '/'.  $asset->width;
+  $cache->cache_file_path = $cache->cache_folder_path . '/' . $asset->hash . '.' . $asset->format;
+
+   // check if the file exists in the cache
+  if ($cache->cacheCheck()) {
+    $file_mod_time = filemtime($cache->cache_file_path);
+    // build cache headers
+    //Header("Last-Modified: ".date("r",filemtime($cache->cache_file_path)), true, 304);
+    Header("Last-Modified: ".date("r",filemtime($cache->cache_file_path)));
+    Header("Expires: ". date("r",(CFG_IMG_CACHE_MAX_AGE + $file_mod_time)));
+    // if browser asks if modified
+    if (isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) && (strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']) == $file_mod_time)) {
+      header('HTTP/1.1 304 Not Modified');
+      //Header('Location:/'. CFG_IMG_CACHE_FOLDER_NAME. '/'. $this->width. '/'. $this->hash. '.'. $this->format);
+      exit();
+    }
+    else {
+      Header('Location:/'. CFG_IMG_CACHE_FOLDER_NAME. '/'. $asset->width. '/'. $asset->hash. '.'. $asset->format);
+      exit();
+    }
+  }
+  else {
+    if (ASSET_FORMAT == 'fsassets' && $asset->id != UUID_ZERO) $asset->getFSAssetOnDisk();
+
+    if ($asset->format == 'jp2') {
+      $image = $asset->data;
+    }
+    else {
+      switch (CFG_IMG_CONVERTER) {
+        case 'imagick':
+          $image = $asset->convertAssetImagick();
+          break;
+        case 'gmagick':
+          $image = $asset->convertAssetGmagick();
+          break;
+        case 'j2k_to_image':
+          $image = $asset->convertAssetJ2kToImage();
+          break;
+      }
+    }
+    $cache->cacheWrite($image);
+  }
+  Header("Last-Modified: ".date("r",filemtime($cache->cache_file_path)));
+  Header("Expires: ". date("r",(CFG_IMG_CACHE_MAX_AGE + filemtime($cache->cache_file_path))));
+  echo $image;
+  exit();
+}
+
+/**
  * Main code
  */
 switch(True) {
@@ -123,22 +210,8 @@ switch(True) {
     break;
   // return the image
   case isset($_GET['texture_id']) && checkUUID($_GET['texture_id']):
-    // create the asset object
-    $asset = new Asset();
-    $asset->id = $_GET['texture_id'];
-
-    // get the format
-    if (isset($_SERVER['HTTP_ACCEPT']) && in_array($_SERVER['HTTP_ACCEPT'], array('image/jpg', 'image/jpeg', 'image/gif', 'image/png'))) {
-      $asset->format = explode('/', $_SERVER['HTTP_ACCEPT'])[1];
-    } else if (isset($_GET['format']) && in_array($_GET['format'], array('jpg', 'jpeg', 'gif', 'png'))) {
-      $asset->format = $_GET['format'];
-    }
-    // get the width
-    if (isset($_GET['width']) && is_numeric($_GET['width'])) {
-      $asset->width = ($_GET['width'] > 1024) ? 1024 : $_GET['width'];
-    }
     // get the image
-    $asset->showImage();
+    showImage();
     break;
 }
 ?>
