@@ -8,11 +8,12 @@
  * --------------------------------- */
 //define('ASSET_FORMAT', 'assets');
 define('ASSET_FORMAT', 'fsassets');
+//define('ASSET_FORMAT', 'sras');
 
 /* =================================
- * Fsassets files folder
+ * Fsassets/SRAS files folder
  * =================================
- * If you are using fsassets,
+ * If you are using fsassets or SRAS,
  * tell the script where the files are stored.
  * This path is absolute.
  * --------------------------------- */
