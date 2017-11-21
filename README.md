@@ -26,3 +26,18 @@ Only the "texture_id" parameter is mandatory.
   * Default value for "width" is the original size of the asset.
 
 You can also set the format with a http header "Accept" like "Accept: image/jpg".
+
+## Note ##
+### How to install gmagick with Ubuntu 16.0.4 ###
+
+#### Install gmagick for php ####
+```
+sudo apt-get install php-pear php-dev libgraphicsmagick1-dev
+sudo pecl install gmagick-2.0.4RC1
+```
+#### Configure gmagick for php ####
+```
+sudo echo "extension=gmagick.so" > /etc/php/7.0/mods-available/gmagick.ini
+sudo phpenmod gmagick 
+```
+Restart your web server
