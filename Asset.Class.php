@@ -114,27 +114,60 @@ class Asset {
     closeDB($link);
   }
 
+  function getSRASAssetValues() {
+    $link = openDB();
+    $query = "SELECT id, name, description, asset_type, sha256, created_at, updated_at, local, temporary FROM assets WHERE id ='". mysqli_real_escape_string($link, $this->id). "' LIMIT 1";
+    if ($result = mysqli_query($link, $query)) {
+      $exists = mysqli_fetch_row($result);
+      $result->close();
+      if (!isset($exists[0])) {
+        closeDB($link);
+        show404();
+      }
+      $this->id           = $exists[0];
+      $this->name         = $exists[1];
+      $this->description  = $exists[2];
+      $this->type         = $exists[3];
+      $this->hash         = $exists[4];
+      $this->create_time  = $exists[5];
+      $this->created_at_iso8601 = date('c', $this->create_time);
+      $this->access_time  = $exists[6];
+      $this->asset_flags  = 0;
+      $this->local        = $exists[7] ? 'true' : 'false';
+      $this->temporary    = $exists[8] ? 'true' : 'false';
+    }
+    closeDB($link);
+  }
+
   /**
    * Get file data
    */
   function getFSAssetOnDisk() {
     // build the file path
     $upper_hash = strtoupper($this->hash);
-    $this->file_path = CFG_FSASSETS_DIR . '/'. substr($upper_hash, 0, 3) . "/" . substr($upper_hash, 3, 3) . "/". $upper_hash. '.gz';
+    $this->file_path = CFG_FSASSETS_DIR . '/'. substr($upper_hash, 0, 3) . "/" . substr($upper_hash, 3, 3) . "/". $upper_hash;
     // check if the file exists
-    if (!file_exists($this->file_path)) {
+    $gzipped = file_exists($this->file_path . '.gz');
+    if (!$gzipped && !file_exists($this->file_path)) {
       $this->data = '';
       return;
     }
-    // get the file
-    $size = filesize($this->file_path);
-    if ($size > 0) {
-      $h = gzopen($this->file_path, "rb");
-      while (!gzeof($h)) {
-        $this->data .= gzread($h, 4096);
+    if($gzipped) {
+      $this->file_path = $this->file_path . '.gz';
+      // get the file
+      $size = filesize($this->file_path);
+      if ($size > 0) {
+        $h = gzopen($this->file_path, "rb");
+        while (!gzeof($h)) {
+          $this->data .= gzread($h, 4096);
+        }
+        gzclose($h);
+        return;
       }
-      gzclose($h);
-      return;
+    } else {
+      if($this->data = file_get_contents($this->file_path)) {
+        return;
+      }
     }
     $this->data = '';
   }

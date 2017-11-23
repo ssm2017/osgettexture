@@ -131,7 +131,7 @@ function showImage() {
 
   // get values in database
   if ($asset->id != UUID_ZERO) {
-    (ASSET_FORMAT == 'fsassets') ? $asset->getFSAssetValues() : $asset->getAssetValues();
+    (ASSET_FORMAT == 'fsassets') ? $asset->getFSAssetValues() : ((ASSET_FORMAT == 'sras') ? $asset->getSRASAssetValues() :  $asset->getAssetValues());
   }
   else {
     $asset->data = $asset->getAssetZero();
@@ -170,7 +170,7 @@ function showImage() {
     }
   }
   else {
-    if (ASSET_FORMAT == 'fsassets' && $asset->id != UUID_ZERO) $asset->getFSAssetOnDisk();
+    if ((ASSET_FORMAT == 'fsassets' || ASSET_FORMAT == 'sras') && $asset->id != UUID_ZERO) $asset->getFSAssetOnDisk();
 
     if ($asset->format == 'jp2') {
       $image = $asset->data;
